@@ -51,9 +51,9 @@ The dry run only fetches and previews rates. `--once` sends one Telegram message
 
 For unattended Windows operation, create a Task Scheduler task with an **At log on** trigger and a **Start a program** action:
 
-- **Program/script:** `C:\Users\POOJITHA\Documents\AI Agents 101\AI agent 101\.venv\Scripts\python.exe`
+- **Program/script:** `.\AI Agents 101\AI agent 101\.venv\Scripts\python.exe`
 - **Add arguments:** `main.py`
-- **Start in:** `C:\Users\POOJITHA\Documents\AI Agents 101\AI agent 101`
+- **Start in:** `.\AI Agents 101\AI agent 101`
 
 This starts one continuous process that sends immediately and then every three hours. Do not also create a repeating trigger for `main.py`, or multiple copies could send duplicate messages. The computer must remain awake and connected to the internet; the loop pauses while it is asleep or off.
 
