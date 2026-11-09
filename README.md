@@ -1,8 +1,8 @@
 # Gold and Silver Telegram Agent
 
-A small Python automation that reads Goldmeter's per-gram 24K, 22K, 18K gold, and silver rates and sends them to one Telegram chat using Telegram's Bot API. Telegram bot messaging is free for this low-volume use. Groq is not needed: there is no LLM step in this workflow.
+A small Python automation that sends configured data to one Telegram chat using Telegram's Bot API. By default, it reads Goldmeter's per-gram 24K, 22K, 18K gold, and silver rates. Telegram bot messaging is free for this low-volume use. Groq is not needed: there is no LLM step in this workflow.
 
-The parser uses Goldmeter's live India price summary, with a fallback to its dedicated rates table. It rejects redirects to other hosts and sends nothing if all four rates cannot be identified safely.
+By default, the parser uses Goldmeter's live India price summary, with a fallback to its dedicated rates table. It rejects redirects and sends nothing if all four rates cannot be identified safely. An optional JSON configuration lets you use another HTTPS HTML or JSON source and define the Telegram message with placeholders.
 
 ## Setup
 
@@ -23,9 +23,37 @@ The parser uses Goldmeter's live India price summary, with a fallback to its ded
    ```
 
    Copy the matching numeric ID into `TELEGRAM_CHAT_ID` in `.env`.
-6. Set `INTERVAL_HOURS` to the time between notifications in hours. It defaults to `24`.
+6. Optionally set `INTERVAL_HOURS` to the time between checks in hours. It defaults to `3`.
 
-The `.env` file is excluded from Git. The required settings are `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, and optionally `INTERVAL_HOURS`. No bot token or chat ID is included in the project template.
+The `.env` file is excluded from Git. The required settings are `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`; `INTERVAL_HOURS` and `MESSAGE_SOURCE_CONFIG` are optional. No bot token or chat ID is included in the project template.
+
+The first successful scheduled run sends the current rates and saves them as the baseline. Each later run compares the latest prices with that saved baseline: if any price changed, it sends the full rate message; otherwise, it sends `No change in the price`. The baseline is updated only after Telegram accepts the message. Dry runs preview the message without sending it or changing the baseline. Local runs save state in the ignored `.last_prices.json` file. GitHub Actions restores and updates that state through its cache between scheduled runs.
+
+## Configure another source and message
+
+The existing Goldmeter workflow remains the default. To use a different source, copy [`examples/message-source.example.json`](./examples/message-source.example.json) to a local JSON file (for example, `message-source.json`) and set this in `.env`:
+
+```text
+MESSAGE_SOURCE_CONFIG=message-source.json
+```
+
+Replace the example URL and fields with those from the source you actually want to use. The example uses a JSON API. A JSON field's `path` uses JSON Pointer syntax, such as `/data/price`. `compare_fields` lists which extracted values count as prices for change detection; keep changing metadata such as `updated_at` out of this list. For an HTML page, set `"format": "html"` and define each field with a CSS `selector`; an optional `pattern` can extract a single capture group from that element's text. For example:
+
+```json
+{
+  "url": "https://your-site.example/current",
+  "format": "html",
+  "fields": {
+    "price": {
+      "selector": "#current-price",
+      "pattern": "₹\\s*([0-9,]+)"
+    }
+  },
+  "template": "Current price: ₹{{price}}"
+}
+```
+
+The template can use `{{field_name}}` placeholders for configured fields. A field that cannot be found, parsed, or is empty causes the run to fail without sending a message. The fetcher requires HTTPS, checks the expected response type, and refuses redirects. The generic mode fetches the page/API response directly; it does not run JavaScript or automatically infer where data is on arbitrary websites. Prefer an official API/feed where available, and verify that the source's update time is represented if freshness matters. Run `--dry-run` to verify the extracted values and rendered message before enabling sends. Remove `MESSAGE_SOURCE_CONFIG` to return to the built-in Goldmeter workflow.
 
 ## Run
 
@@ -47,7 +75,7 @@ Run continuously, sending immediately and then once every `INTERVAL_HOURS` (defa
 .\.venv\Scripts\python.exe main.py
 ```
 
-The dry run only fetches and previews rates. `--once` sends one Telegram message. Running without either option sends immediately and repeats every `INTERVAL_HOURS` (`3` hours by default; set it to `2` for every two hours).
+The dry run fetches and previews the message that would be sent without changing the saved baseline. The first successful run sends the full rates; subsequent runs send the full rates only if prices changed, or `No change in the price` if they did not. `--once` sends one Telegram message. Running without either option sends immediately and repeats every `INTERVAL_HOURS` (`3` hours by default; set it to `2` for every two hours).
 
 For unattended Windows operation, create a Task Scheduler task with an **At log on** trigger and a **Start a program** action:
 

@@ -5,7 +5,7 @@ import requests
 
 from gold_silver_agent.config import Settings
 from gold_silver_agent.rates import RateQuote
-from gold_silver_agent.telegram import send_rate_message
+from gold_silver_agent.telegram import send_message, send_rate_message
 
 
 class TelegramSenderTests(unittest.TestCase):
@@ -57,6 +57,24 @@ class TelegramSenderTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError, "numeric Telegram chat ID"):
             settings.validate_telegram()
+
+    def test_sends_arbitrary_text(self):
+        with patch("gold_silver_agent.telegram.requests.post") as post:
+            response = Mock()
+            response.json.return_value = {"ok": True, "result": {"message_id": 1}}
+            post.return_value = response
+
+            send_message(self.settings, "Weather: 28 C")
+
+        self.assertEqual(post.call_args.kwargs["json"]["text"], "Weather: 28 C")
+
+    def test_rejects_empty_or_overlong_text_before_request(self):
+        with patch("gold_silver_agent.telegram.requests.post") as post:
+            with self.assertRaisesRegex(ValueError, "must not be empty"):
+                send_message(self.settings, " \n")
+            with self.assertRaisesRegex(ValueError, "4096 characters"):
+                send_message(self.settings, "x" * 4097)
+        post.assert_not_called()
 
 
 if __name__ == "__main__":

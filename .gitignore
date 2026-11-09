@@ -1,5 +1,7 @@
 .env
 .venv/
+.last_prices.json
+.last_prices.json.tmp
 __pycache__/
 *.py[cod]
 .pytest_cache/

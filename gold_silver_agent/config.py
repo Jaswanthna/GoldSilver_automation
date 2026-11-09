@@ -12,6 +12,7 @@ class Settings:
     telegram_bot_token: str
     telegram_chat_id: str
     interval_hours: int
+    message_source_config: str = ""
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -28,6 +29,7 @@ class Settings:
             telegram_bot_token=os.getenv("TELEGRAM_BOT_TOKEN", "").strip(),
             telegram_chat_id=os.getenv("TELEGRAM_CHAT_ID", "").strip(),
             interval_hours=interval_hours,
+            message_source_config=os.getenv("MESSAGE_SOURCE_CONFIG", "").strip(),
         )
 
     def validate_telegram(self) -> None:

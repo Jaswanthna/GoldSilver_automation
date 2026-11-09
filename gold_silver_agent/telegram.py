@@ -40,10 +40,18 @@ def get_chat_ids(settings: Settings) -> None:
         print(f"TELEGRAM_CHAT_ID={chat_id} ({label})")
 
 
-def send_rate_message(settings: Settings, quote: RateQuote) -> None:
+def send_message(settings: Settings, text: str) -> None:
     settings.validate_telegram()
+    if not text.strip():
+        raise ValueError("Telegram message must not be empty")
+    if len(text.encode("utf-16-le")) // 2 > 4096:
+        raise ValueError("Telegram message must not exceed 4096 characters")
     _telegram_request(
         settings,
         "sendMessage",
-        {"chat_id": settings.telegram_chat_id, "text": quote.message()},
+        {"chat_id": settings.telegram_chat_id, "text": text},
     )
+
+
+def send_rate_message(settings: Settings, quote: RateQuote) -> None:
+    send_message(settings, quote.message())

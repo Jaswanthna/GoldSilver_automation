@@ -1,0 +1,19 @@
+{
+  "url": "https://api.example.com/v1/market",
+  "format": "json",
+  "fields": {
+    "price": {
+      "path": "/data/price"
+    },
+    "currency": {
+      "path": "/data/currency"
+    },
+    "updated_at": {
+      "path": "/data/updated_at"
+    }
+  },
+  "compare_fields": [
+    "price"
+  ],
+  "template": "Market update\nPrice: {{currency}} {{price}}\nUpdated: {{updated_at}}"
+}
